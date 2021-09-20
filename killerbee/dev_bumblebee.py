@@ -80,7 +80,7 @@ class Bumblebee(object):
         """
         self.dev = dev
         self.rx_buffer = bytes()
-        self.usb_rx_buffer = array('B', b'\x00'*256)
+        self.usb_rx_buffer = array('B', b'\x00'*64)
         self._channel = None
         self.__stream_open = False
         self.timeout = 2.0
