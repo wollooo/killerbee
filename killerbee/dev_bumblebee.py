@@ -141,7 +141,7 @@ class Bumblebee(object):
         Read incoming data and fill RX buffer.
         """
         try:
-          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 256)
+          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 64)
           if nbytes > 0:
             self.rx_buffer += self.usb_rx_buffer.tobytes()[:nbytes]
         except usb.core.USBError as e:
