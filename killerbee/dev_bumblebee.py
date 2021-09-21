@@ -141,11 +141,11 @@ class Bumblebee(object):
         Read incoming data and fill RX buffer.
         """
         try:
-          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 64)
+          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 500)
           if nbytes > 0:
             self.rx_buffer += self.usb_rx_buffer.tobytes()[:nbytes]
         except usb.core.USBError as e:
-            if e.errno != 110 and e.errno != 75: #Operation timed out
+            if e.errno != 110: #Operation timed out
                 print("Error args: {}".format(e.args))
                 raise e
                 #TODO error handling enhancements for USB 1.0
