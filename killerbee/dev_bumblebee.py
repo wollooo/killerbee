@@ -80,7 +80,7 @@ class Bumblebee(object):
         """
         self.dev = dev
         self.rx_buffer = bytes()
-        self.usb_rx_buffer = array('B', b'\x00'*256)
+        self.usb_rx_buffer = array('B', b'\x00'*64)
         self._channel = None
         self.__stream_open = False
         self.timeout = 2.0
@@ -141,9 +141,10 @@ class Bumblebee(object):
         Read incoming data and fill RX buffer.
         """
         try:
-          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 100)
+          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 500)
           if nbytes > 0:
-            self.rx_buffer += self.usb_rx_buffer.tobytes()[:nbytes]
+            data_length = self.usb_rx_buffer[0]
+            self.rx_buffer += self.usb_rx_buffer.tobytes()[1:1+data_length]
         except usb.core.USBError as e:
             if e.errno != 110: #Operation timed out
                 print("Error args: {}".format(e.args))
@@ -151,6 +152,7 @@ class Bumblebee(object):
                 #TODO error handling enhancements for USB 1.0
             else:
                 return None
+
 
     def send_message(self, command, data):
         """
@@ -385,22 +387,24 @@ class Bumblebee(object):
             # CC2531 only allow (for the moment) to capture packets with valid CRC
             validcrc = True
 
-            # Extract RSSI and LQI from payload buffer.
-            rssi = struct.unpack('<b', bytes([payload[0]]))[0]
-            correlation = struct.unpack('<b', bytes([payload[1]]))[0]
+            # Ensure packet is a CMD_GOT_PKT
+            if packet.get_command() == Bumblebee.CMD_GOT_PKT:
+                # Extract RSSI and LQI from payload buffer.
+                rssi = struct.unpack('<b', bytes([payload[0]]))[0]
+                correlation = struct.unpack('<b', bytes([payload[1]]))[0]
 
-            ret = {1:validcrc, 2:rssi,
-                      'validcrc':validcrc, 'rssi':rssi, 'lqi':correlation,
-                      'dbm':rssi,'datetime':datetime.utcnow()}
+                ret = {1:validcrc, 2:rssi,
+                          'validcrc':validcrc, 'rssi':rssi, 'lqi':correlation,
+                          'dbm':rssi,'datetime':datetime.utcnow()}
 
-            # Convert the framedata to a string for the return value, and replace the TI FCS with a real FCS
-            # if the radio told us that the FCS had passed validation.
-            if validcrc:
-                ret[0] = bytearray_to_bytes(payload[2:]) + makeFCS(payload[2:])
-            else:
-                ret[0] = bytearray_to_bytes(payload)
-            ret['bytes'] = ret[0]
-            return ret
+                # Convert the framedata to a string for the return value, and replace the TI FCS with a real FCS
+                # if the radio told us that the FCS had passed validation.
+                if validcrc:
+                    ret[0] = bytearray_to_bytes(payload[2:]) + makeFCS(payload[2:])
+                else:
+                    ret[0] = bytearray_to_bytes(payload)
+                ret['bytes'] = ret[0]
+                return ret
 
     def jammer_on(self, channel=None, page=0):
         """
