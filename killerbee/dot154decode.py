@@ -2,9 +2,6 @@ import struct  # type: ignore
 
 from Crypto.Cipher import AES  # type: ignore
 
-from .exception import *
-
-
 ## Constants for packet decoding fields
 # Frame Control Field
 DOT154_FCF_TYPE_MASK            = 0x0007  #: Frame type mask
