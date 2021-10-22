@@ -89,8 +89,10 @@ class Bumblebee(object):
 
         # Set configuration
         self.dev.set_configuration()
-
         self.name = usb.util.get_string(self.dev, self.dev.iProduct)
+
+        # Initialize dongle (reset radio)
+        self._do_init()
 
     def process_packet(self):
         """
@@ -188,10 +190,23 @@ class Bumblebee(object):
         return self.wait_for_ack(Bumblebee.CMD_SEND_PKT_ACK)
 
 
+    def _do_init(self):
+        """
+        Initialize our dongle
+        """
+        print('[bb] init dongle')
+        self.send_message(
+          Bumblebee.CMD_INIT,
+          bytes([])
+        )
+        return self.wait_for_ack(Bumblebee.CMD_INIT_ACK)
+
+
     def _do_set_channel(self):
         """
         Set channel for our dongle.
         """
+        print('[bb] set channel to %d' % self._channel)
         self.send_message(
           Bumblebee.CMD_SET_CHANNEL,
           bytes([ self._channel ])
@@ -326,7 +341,7 @@ class Bumblebee(object):
         @rtype: None
         """
         self.capabilities.require(KBCapabilities.SETCHAN)
-
+        print('[bb] pre-set channel to %d' % channel)
         if channel >= 11 or channel <= 26:
             self._channel = channel
             if self.dev is not None:
