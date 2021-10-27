@@ -16,6 +16,7 @@ import time # type: ignore
 from array import array # type: ignore
 from datetime import datetime # type: ignore
 from .kbutils import KBCapabilities, makeFCS, bytearray_to_bytes # type: ignore
+from binascii import hexlify
 
 # Import USB support depending on version of pyUSB
 try:
@@ -72,6 +73,7 @@ class Bumblebee(object):
     CMD_SNIFF_OFF = 0x08
     CMD_SNIFF_OFF_ACK = 0x09
     CMD_GOT_PKT = 0x0A
+    CMD_ERR = 0xFF
 
 
     def __init__(self, dev, bus):
@@ -91,7 +93,8 @@ class Bumblebee(object):
         self.dev.set_configuration()
         self.name = usb.util.get_string(self.dev, self.dev.iProduct)
 
-        # Initialize dongle (reset radio)
+        # Initialize dongle (reset usb device and reset radio)
+        self.dev.reset()
         self._do_init()
 
     def process_packet(self):
@@ -143,7 +146,7 @@ class Bumblebee(object):
         Read incoming data and fill RX buffer.
         """
         try:
-          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 500)
+          nbytes = self.dev.read(Bumblebee.EP_IN, self.usb_rx_buffer, 10)
           if nbytes > 0:
             data_length = self.usb_rx_buffer[0]
             self.rx_buffer += self.usb_rx_buffer.tobytes()[1:1+data_length]
@@ -248,8 +251,12 @@ class Bumblebee(object):
               if pkt.get_command() == command_ack:
                 return True
 
+              if pkt.get_command() == Bumblebee.CMD_ERR:
+                  print('[error] %s' % hexlify(pkt.get_data()))
+
             # Timeout expired ?
             if (time.time() - entry_time) >= self.timeout:
+              print('timeout! (%d)' % command_ack)
               return False
 
             # Wait a bit
