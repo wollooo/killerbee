@@ -149,13 +149,16 @@ if __name__ == '__main__':
             assocreqp[6] = "\x01\x8e\x67"  # Full Function Device (FFD)
         else:
             assocreqp[6] = "\x01\x8c\x67"  # Reduced Function Device (RFD)
-
-        assocreqinj = ''.join(assocreqp)
+            
+        assocreqp = [x.encode() if type(x) == str else x for x in assocreqp]
+        assocreqinj = b''.join(assocreqp)
 
         seqnum += 1
         datareqp[1] = "%c" % seqnum
         datareqp[4] = mac
+        datareqp = [x.hex() if type(x) == bytes else x for x in datareqp]
         datareqinj = ''.join(datareqp)
+        datareqinj = datareqinj.encode()
 
         try:
             # Send the associate request frame
